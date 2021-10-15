@@ -1,31 +1,99 @@
-const { request } = require("express");
 const express = require("express");
-const got = require("got");
+const connectionString = require("./config.js");
+const passport = require("passport");
+const pgp = require("pg-promise")();
+
+const db = pgp(connectionString);
+const passportJwt = require("passport-jwt");
+
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = 3000;
 
-const initOptions = {/* initialization options */};
-const pgp = require('pg-promise')(initOptions);
-const db = pgp(connection);
+const secret = "secret";
 
-app.get("/forecast/:location", (req, res) => {
-    got
-      .get(
-        "http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/json/sitelist?key=819423df-a8c7-444c-86b2-823250d59464"
-      )
-      .json()
+const options = {
+    jwtFromRequest: passportJwt.ExtractJwt.fromHeader("x-access-token"),
+    secretOrKey: secret,
+};
 
+//what is passport jwt? function is called whenever someone makes request to server and want to be authenticated. We get the
+//decoded jwt from their server, there is a username inside. whihc we check from our table, from account table and check whether it exists
 
-      
-      res.send(forecastFinal);
+passport.use(
+    new passportJwt.Strategy(options, function (decodedJwt, next) {
+        const username = decodedJwt.username;
+
+        db.any("select * from account")
+            .then(function (data) {
+                const account = data.find(
+                    (account) =>
+                        account.username === username
+                );
+                if (account !== undefined) {
+                    next(null,account);
+                } else {
+                    return next(null, false);
+                }
+            })
+            .catch(function (error) {
+                next(error, false);
+                console.error(error);
+            });
     })
-    .catch((error) => {
-      console.log(error);
-    });
+);
+
+app.use(passport.initialize());
+
+app.get("/books", passport.authenticate("jwt", { session: false }), (request, response) => {
+    db.any("SELECT * FROM book")
+        .then(function (data) {
+            response.send(data);
+        })
+        .catch(function (error) {
+            response.send(500);
+            console.error(error);
+        });
 });
+
+app.get(
+    "/login",
+    (request, response) => {
+        const username = request.query.username;
+        const password = request.query.password;
+        console.log(username,password);
+
+        db.any("select * from account")
+            .then(function (data) {
+                console.log(data);
+                const account = data.find(
+                    (account) =>
+                        account.username === username &&
+                        account.user_password === password
+                );
+                if (account !== undefined) {
+                    response.send({
+                        message: "hello",
+                        token: createTokenForUser(username),
+                    });
+                } else {
+                    response.status(400).send({
+                        errors: "combination of username and password are wrong",
+                    });
+                }
+            })
+            .catch(function (error) {
+                response.status(500);
+                console.error(error);
+            });
+    }
+);
+
+function createTokenForUser(username) {
+    return jwt.sign({ username: username }, secret);
+}
 
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+    console.log(`Example app listening at http://localhost:${port}`);
 });
-npm install pg-promise

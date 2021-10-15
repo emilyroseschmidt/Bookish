@@ -32,4 +32,7 @@ CREATE TABLE Loan(
 			REFERENCES Book(ISBN)
 );
 
+
+select *
+from account;
 	
