@@ -1,0 +1,35 @@
+const db = require("./db");
+
+function doesUsernameExist(username) {
+        return db.any("select * from account").then(function (data) {
+                const account = data.find(
+                    (account) =>
+                        account.username === username
+                );
+                if (account !== undefined) {
+                    return true;
+                } else {
+                    false;
+                }
+            });
+        }
+
+function canUserLogin(username,password) {
+    return db.any("SELECT * FROM account").then(function (data){
+        const account = data.find(
+            (account) =>
+            account.username === username &&
+            account.user_password === password
+    );
+    if (account !== undefined) {
+        return true;
+    } else {
+        return false
+        };
+})
+}
+module.exports = {
+    doesUsernameExist: doesUsernameExist,
+    canUserLogin: canUserLogin,
+};
+        

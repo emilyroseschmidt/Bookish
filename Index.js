@@ -1,9 +1,9 @@
 const express = require("express");
 const connectionString = require("./config.js");
 const passport = require("passport");
-const pgp = require("pg-promise")();
 
-const db = pgp(connectionString);
+
+
 const passportJwt = require("passport-jwt");
 
 const jwt = require("jsonwebtoken");
@@ -12,6 +12,9 @@ const app = express();
 const port = 3000;
 
 const secret = "secret";
+
+const bookRepository = require("./repository/bookRepository");
+const accountRepository = require("./repository/accountRepository");
 
 const options = {
     jwtFromRequest: passportJwt.ExtractJwt.fromHeader("x-access-token"),
@@ -25,16 +28,13 @@ passport.use(
     new passportJwt.Strategy(options, function (decodedJwt, next) {
         const username = decodedJwt.username;
 
-        db.any("select * from account")
-            .then(function (data) {
-                const account = data.find(
-                    (account) =>
-                        account.username === username
-                );
-                if (account !== undefined) {
-                    next(null,account);
+        accountRepository
+            .doesUsernameExist(username)
+            .then((exists) => {
+                if (exists) {
+                    next(null, username);
                 } else {
-                    return next(null, false);
+                    next(null, false);
                 }
             })
             .catch(function (error) {
@@ -46,49 +46,46 @@ passport.use(
 
 app.use(passport.initialize());
 
-app.get("/books", passport.authenticate("jwt", { session: false }), (request, response) => {
-    db.any("SELECT * FROM book")
-        .then(function (data) {
-            response.send(data);
-        })
-        .catch(function (error) {
-            response.send(500);
-            console.error(error);
-        });
-});
-
 app.get(
-    "/login",
+    "/books",
+    passport.authenticate("jwt", { session: false }),
     (request, response) => {
-        const username = request.query.username;
-        const password = request.query.password;
-        console.log(username,password);
-
-        db.any("select * from account")
+        bookRepository
+            .getAllBooks()
             .then(function (data) {
-                console.log(data);
-                const account = data.find(
-                    (account) =>
-                        account.username === username &&
-                        account.user_password === password
-                );
-                if (account !== undefined) {
-                    response.send({
-                        message: "hello",
-                        token: createTokenForUser(username),
-                    });
-                } else {
-                    response.status(400).send({
-                        errors: "combination of username and password are wrong",
-                    });
-                }
+                response.send(data);
             })
             .catch(function (error) {
-                response.status(500);
+                response.send(500);
                 console.error(error);
             });
     }
 );
+
+app.get("/login", (request, response) => {
+    const username = request.query.username;
+    const password = request.query.password;
+    console.log(username, password);
+
+    accountRepository
+        .canUserLogin(username, password)
+        .then((canLogin) => {
+            if (canLogin) {
+                response.send({
+                    message: "hello",
+                    token: createTokenForUser(username),
+                });
+            } else {
+                response.status(400).send({
+                    errors: "combination of username and password are wrong",
+                });
+            }
+        })
+        .catch(function (error) {
+            response.status(500);
+            console.error(error);
+        });
+});
 
 function createTokenForUser(username) {
     return jwt.sign({ username: username }, secret);

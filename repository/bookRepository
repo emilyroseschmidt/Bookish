@@ -1,0 +1,9 @@
+const db = require("./db");
+
+function getAllBooks(){
+    return db.any("SELECT * FROM book");
+}
+    
+module.exports = {
+    getAllBooks: getAllBooks,
+};
