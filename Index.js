@@ -15,6 +15,7 @@ const secret = "secret";
 
 const bookRepository = require("./repository/bookRepository");
 const accountRepository = require("./repository/accountRepository");
+const accountService = require("./Service/accountService.js");
 
 const options = {
     jwtFromRequest: passportJwt.ExtractJwt.fromHeader("x-access-token"),
@@ -67,13 +68,13 @@ app.get("/login", (request, response) => {
     const password = request.query.password;
     console.log(username, password);
 
-    accountRepository
-        .canUserLogin(username, password)
-        .then((canLogin) => {
-            if (canLogin) {
+    accountService
+    .canUserLogin(username,password)
+        .then((token) => {
+            if (token) {
                 response.send({
                     message: "hello",
-                    token: createTokenForUser(username),
+                    token:token
                 });
             } else {
                 response.status(400).send({
@@ -87,9 +88,6 @@ app.get("/login", (request, response) => {
         });
 });
 
-function createTokenForUser(username) {
-    return jwt.sign({ username: username }, secret);
-}
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
