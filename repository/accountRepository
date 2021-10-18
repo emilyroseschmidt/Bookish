@@ -1,32 +1,18 @@
+
 const db = require("./db");
 
 function doesUsernameExist(username) {
-        return db.any("select * from account").then(function (data) {
-                const account = data.find(
-                    (account) =>
-                        account.username === username
-                );
-                if (account !== undefined) {
-                    return true;
-                } else {
-                    false;
-                }
-            });
-        }
+    return db.any("select * from account where username = $1", [username]).then((accounts) =>{
+        return accounts.length>0;
+    });
+}
+
 
 function canUserLogin(username,password) {
-    return db.any("SELECT * FROM account").then(function (data){
-        const account = data.find(
-            (account) =>
-            account.username === username &&
-            account.user_password === password
-    );
-    if (account !== undefined) {
-        return true;
-    } else {
-        return false
-        };
-})
+    return db.any("SELECT * FROM account where username = $1 user.password = $1", [username,password]).then((accounts) => {
+        return accounts.length>0;
+    })
+   
 }
 module.exports = {
     doesUsernameExist: doesUsernameExist,
