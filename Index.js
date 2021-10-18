@@ -11,15 +11,17 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const port = 3000;
 
-const secret = "secret";
+const config = require("./config");
 
 const bookRepository = require("./repository/bookRepository");
 const accountRepository = require("./repository/accountRepository");
-const accountService = require("./Service/accountService.js");
+const accountService = require("./Service/accountService");
+
+const bookController = require("./Controller/bookController");
 
 const options = {
     jwtFromRequest: passportJwt.ExtractJwt.fromHeader("x-access-token"),
-    secretOrKey: secret,
+    secretOrKey: config.secret,
 };
 
 //what is passport jwt? function is called whenever someone makes request to server and want to be authenticated. We get the
@@ -47,21 +49,7 @@ passport.use(
 
 app.use(passport.initialize());
 
-app.get(
-    "/books",
-    passport.authenticate("jwt", { session: false }),
-    (request, response) => {
-        bookRepository
-            .getAllBooks()
-            .then(function (data) {
-                response.send(data);
-            })
-            .catch(function (error) {
-                response.send(500);
-                console.error(error);
-            });
-    }
-);
+app.use("/",bookController);
 
 app.get("/login", (request, response) => {
     const username = request.query.username;

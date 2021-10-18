@@ -1,4 +1,5 @@
 const accountRepository = require("../repository/accountRepository");
+const config = require("../config");
 
 function canUserLogin(username,password){
 accountRepository.canUserLogin(username, password)
@@ -10,7 +11,7 @@ accountRepository.canUserLogin(username, password)
             });
         }
 function createTokenForUser(username) {
-    return jwt.sign({ username: username }, secret);
+    return jwt.sign({ username: username }, config.secret);
 }
 
 module.exports = {canUserLogin:canUserLogin};

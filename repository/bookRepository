@@ -3,7 +3,18 @@ const db = require("./db");
 function getAllBooks(){
     return db.any("SELECT * FROM book");
 }
+
+function getBook(){
+    return db.any("SELECT * FROM book where ISBN = $1", [isbn])
+    .then(book => {
+        if (book.length>0){
+            return book[0]
+        }
+        else {return null}
+    })
+}
     
 module.exports = {
     getAllBooks: getAllBooks,
+    getBook: getBook,
 };
